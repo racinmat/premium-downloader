@@ -1,41 +1,17 @@
 import json
 import sqlite3
+from io import StringIO
 
-
-def login_(client: Api, login, username, password):
-    if login.get('code'):
-        from capthca import capthca
-        cc = capthca(login.get('code'))
-        if cc.backdata:
-            if len(cc.backdata) > 0:
-                login = client.login(username, password, cc.backdata)
-                del cc
-                login_(client, login, username, password)
-        else:
-            print('empty form again')
-            login = client.login(username, password, cc.backdata)
-            del cc
-            login_(client, login, username, password)
+from client import Client
 
 
 def create_client():
     with open('credentials.json', mode='r', encoding='utf-8') as fp:
         credentials = json.load(fp)
-    client = Api()
-    client.global_variable['device_id'] = credentials['device_id']
-    client.global_variable['iid'] = credentials['iid']
-    client.global_variable['openudid'] = credentials['openudid']
-    client.global_variable['app_language'] = "cs"
-    client.global_variable['language'] = "cs"
-    client.global_variable['region'] = "CZ"
-    client.global_variable['sys_region'] = "CZ"
-    client.global_variable['carrier_region'] = "CZ"
-    client.global_variable['carrier_region_v2'] = "230"
-
     username = credentials['username']
     password = credentials['password']
-    login = client.login(username, password)
-    login_(client, login, username, password)
+    client = Client(username, password)
+    client.login()
     return client
 
 
@@ -88,9 +64,8 @@ def get_porn_star_list():
         'julianna-vega', 'veronica-avluv', 'aiden-starr', 'kasey-warner', 'christie-stevens',
         'katie-kox', 'sabrina-banks', 'lexi-lore', 'alli-rae', 'janice-griffith',
         'sophie-dee', 'linet-a-lynette', 'lexi-belle', 'francesca-le', 'kelly-divine',
-        'chanel-preston', 'vicki-chase', 'casey-calvert'
+        'chanel-preston', 'vicki-chase', 'casey-calvert', 'jasmine-callipygian'
     ]
-
 
 def main():
     client = create_client()
