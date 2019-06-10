@@ -44,21 +44,39 @@ def videos_by_hashtag_paginated(client, tag_id, count=2000, per_page=100):
 
 
 def porn_star_all_premium_videos(browser: WebDriver, name):
+    # there are 2 types of porn star pages, fuck it
     browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1')
     video_links = []
-    pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
-    pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
-    videos_str = browser.find_by_css(
-        'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter').text
-    total_videos_num = int(videos_str.split(' ')[-1])
-    for page in range(1, pages_num + 1):
-        browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1&page={page}')
-        videos_div = browser.find_by_css('#pornstarsVideoSection').first
-        videos_list = list(videos_div.find_by_css('li.videoblock'))
-        video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
-                        videos_list]
-    print(f'loaded {len(video_links)} videos for pornstar {name} in total')
-    assert len(video_links) == total_videos_num
+    if browser.is_element_present_by_id('profileHome'):
+        browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}/videos/premium')
+        # todo: dodělat stránky s tímhle
+        # todo: dodělat, otestovat and shit, stránkování
+        pages_div = browser.find_by_css('#profileContent > div.profileContentLeft > section > div > div.nf-wrapper > div.pagination3')
+        pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
+        pages_num = 1
+        for page in range(1, pages_num + 1):
+            browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}/videos/premium')
+            videos_div = browser.find_by_css('#moreData').first
+            videos_list = list(videos_div.find_by_css('li.videoblock'))
+            video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
+                            videos_list]
+        print(f'loaded {len(video_links)} videos for pornstar {name} in total')
+    elif browser.is_element_present_by_id('pornstarVideos'):
+        pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
+        pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
+        videos_str = browser.find_by_css(
+            'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter').text
+        total_videos_num = int(videos_str.split(' ')[-1])
+        for page in range(1, pages_num + 1):
+            browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1&page={page}')
+            videos_div = browser.find_by_css('#pornstarsVideoSection').first
+            videos_list = list(videos_div.find_by_css('li.videoblock'))
+            video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
+                            videos_list]
+        print(f'loaded {len(video_links)} videos for pornstar {name} in total')
+        assert len(video_links) == total_videos_num
+    else:
+        raise RuntimeError('error with profile, someting unknown')
     return video_links
 
 
@@ -98,8 +116,7 @@ def main():
     conn = sqlite3.connect('links.db')
     conn.execute(
         "CREATE TABLE IF NOT EXISTS videos (video_id varchar NOT NULL, star_name varchar NOT NULL, "
-        "video_url varchar NOT NULL, "
-        "downloaded integer NOT NULL DEFAULT 0, download_url varchar NOT NULL, create_time integer NOT NULL);")
+        "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0);")
 
     for star_name in porn_stars:
         videos_list = porn_star_all_premium_videos(browser, star_name)
@@ -108,7 +125,7 @@ def main():
             if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
                 continue
             with conn:
-                conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?)',
+                conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
                              (video_id, video, star_name))
     print('done')
 
