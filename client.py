@@ -1,5 +1,4 @@
-from urllib import parse
-import requests
+from time import sleep
 
 
 class Client(object):
@@ -16,30 +15,12 @@ class Client(object):
         browser.find_by_id('password').first.fill(self.password)
         # browser.find_by_id('remember_me').first.fill('on')
         browser.check('remember_me')
+        sleep(0.1)  # Time in seconds
         browser.find_by_id('submitLogin').first.click()
-        #
-        # url = 'https://www.pornhubpremium.com/front/authenticate'
-        #
-        # posts = {
-        #     'username': self.username,
-        #     'password': self.password,
-        #     # 'remember_me': 'on',
-        #     'remember_me': True,
-        #     # 'email': None,
-        #     # 'mobile': None,
-        #     # 'account': None,
-        #     # 'captcha': capthcha
-        # }
-        # url_parse = parse.urlsplit(url)
-        # headers = {
-        #     "Host": url_parse.netloc,
-        #     'X-SS-TC': "0",
-        #     'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36",
-        #     'Accept-Encoding': "gzip",
-        #     'Connection': "keep-alive",
-        #     'X-Tt-Token': "",
-        #     'sdk-version': "1",
-        # }
-        # response = requests.post(url, headers=headers, data=posts)
-        # return response
-        return None
+        tries = 0
+        while browser.url != 'https://www.pornhubpremium.com/':
+            if tries > 10:
+                raise RuntimeError('We can not reach the homepage')
+            sleep(1)  # Time in seconds
+            tries += 1
+        return browser

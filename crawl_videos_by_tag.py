@@ -1,8 +1,9 @@
 import json
 import sqlite3
 from io import StringIO
-
+from splinter.driver.webdriver.chrome import WebDriver
 from client import Client
+import re
 
 
 def create_client():
@@ -11,8 +12,8 @@ def create_client():
     username = credentials['username']
     password = credentials['password']
     client = Client(username, password)
-    client.login()
-    return client
+    browser = client.login()
+    return browser
 
 
 def search_tags_by_name(client, query):
@@ -42,6 +43,25 @@ def videos_by_hashtag_paginated(client, tag_id, count=2000, per_page=100):
     return videos
 
 
+def porn_star_all_premium_videos(browser: WebDriver, name):
+    browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1')
+    video_links = []
+    pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
+    pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
+    videos_str = browser.find_by_css(
+        'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter').text
+    total_videos_num = int(videos_str.split(' ')[-1])
+    for page in range(1, pages_num + 1):
+        browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1&page={page}')
+        videos_div = browser.find_by_css('#pornstarsVideoSection').first
+        videos_list = list(videos_div.find_by_css('li.videoblock'))
+        video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
+                        videos_list]
+    print(f'loaded {len(video_links)} videos for pornstar {name} in total')
+    assert len(video_links) == total_videos_num
+    return video_links
+
+
 def results_to_videos_info(results):
     return [{
         'download_url': i['video']['download_addr']['url_list'][0],
@@ -64,31 +84,32 @@ def get_porn_star_list():
         'julianna-vega', 'veronica-avluv', 'aiden-starr', 'kasey-warner', 'christie-stevens',
         'katie-kox', 'sabrina-banks', 'lexi-lore', 'alli-rae', 'janice-griffith',
         'sophie-dee', 'linet-a-lynette', 'lexi-belle', 'francesca-le', 'kelly-divine',
-        'chanel-preston', 'vicki-chase', 'casey-calvert', 'jasmine-callipygian'
+        'chanel-preston', 'vicki-chase', 'casey-calvert', 'jasmine-callipygian', 'athena-rayne',
+        'paisley-rae', 'ava-taylor', 'jia-lissa', 'amanda-monroe', 'maria-pie',
+        'natalia-starr', 'kendra-james', 'harley-dean', 'jamie-valentine', 'brianna-beach',
+        'penny-flame'
     ]
 
+
 def main():
-    client = create_client()
+    browser = create_client()
     porn_stars = get_porn_star_list()
 
     conn = sqlite3.connect('links.db')
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS videos (tag_id varchar NOT NULL, share_url varchar NOT NULL, "
-        "downloaded integer NOT NULL DEFAULT 0, share_id varchar NOT NULL, download_url varchar NOT NULL, "
-        "download_id varchar NOT NULL, create_time integer NOT NULL);")
+        "CREATE TABLE IF NOT EXISTS videos (video_id varchar NOT NULL, star_name varchar NOT NULL, "
+        "video_url varchar NOT NULL, "
+        "downloaded integer NOT NULL DEFAULT 0, download_url varchar NOT NULL, create_time integer NOT NULL);")
 
-    for tag_id in porn_stars:
-        videos_list = videos_by_hashtag_paginated(client, tag_id, count=10000, per_page=100)
+    for star_name in porn_stars:
+        videos_list = porn_star_all_premium_videos(browser, star_name)
         for video in videos_list:
-            share_id = video['share_id']
-            if conn.execute(f'select exists(select 1 from videos where share_id = \'{share_id}\')').fetchone()[0]:
+            video_id = re.search('viewkey=([\d\w]+)', video).group(1)
+            if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
                 continue
             with conn:
-                conn.execute('INSERT INTO videos (tag_id, share_url, share_id, download_url, download_id, create_time) '
-                             'VALUES (?, ?, ?, ?, ?, ?)',
-                             (tag_id, video['share_url'], video['share_id'], video['download_url'],
-                              video['download_id'], video['create_time']))
-
+                conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?)',
+                             (video_id, video, star_name))
     print('done')
 
 
