@@ -31,6 +31,17 @@ def main():
             continue
         sizes = [720, 480]
         download_link = None
+
+        download_tab_button = browser.find_by_css('.tab-menu-wrapper-row > .tab-menu-wrapper-cell > .tab-menu-item[data-tab="download-tab"]')
+        download_tab_button.click()
+        download_tab_button.click()
+
+        download_blocked_div = '.video-actions-tabs > .video-action-tab.download-tab > .verifyEmailWrapper'
+        download_blocked_message = 'The download feature of this video has been disabled by'
+        if len(browser.find_by_css(download_blocked_div)) > 0 and download_blocked_message in browser.find_by_css(
+                download_blocked_div).text:
+            print('video download is forbidden')
+            continue
         for size in sizes:
             if list(browser.find_link_by_text(f' {size}p')) == 0:
                 # size not existing, trying another
