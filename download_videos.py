@@ -22,11 +22,12 @@ def main():
         video_info = dict(video_info)
         video_id = video_info['video_id']
         browser.visit(video_info['video_url'])
+        # if browser.find_by_text('human'):
         video_title = browser.find_by_css('#videoTitle').text
         file_name = f'videos/{video_id}-{video_title}.mp4'
         if osp.exists(file_name):
             with conn:
-                conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = {video_id}')
+                conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
             continue
         sizes = [720, 480]
         download_link = None
@@ -40,14 +41,9 @@ def main():
             raise RuntimeError('link for corresponding size not found')
         # must have here headers, otherwise it behaves as api and does not serve the video
         request.urlretrieve(download_link, file_name)
-        # response = requests.get(download_link, allow_redirects=True, headers={
-        #     'User-Agent': 'Mozilla/5.0',
-        #     'X-Requested-With': 'XMLHttpRequest',
-        #     'Referer': 'https://permit.pcta.org/application/'
-        # })
-        # request.urlretrieve(response.url, file_name)
+        print(file_name, 'downloaded')
         with conn:
-            conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = {video_id}')
+            conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
 
     pbar.finish()
     print('done')
