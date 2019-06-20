@@ -1,4 +1,5 @@
 import sqlite3
+from time import sleep
 from urllib import request
 import requests
 import progressbar
@@ -34,7 +35,9 @@ def main():
 
         download_tab_button = browser.find_by_css('.tab-menu-wrapper-row > .tab-menu-wrapper-cell > .tab-menu-item[data-tab="download-tab"]')
         download_tab_button.click()
+        sleep(0.1)  # Time in seconds
         download_tab_button.click()
+        # todo: add mute and pause (m and space) send it to player
 
         download_blocked_div = '.video-actions-tabs > .video-action-tab.download-tab > .verifyEmailWrapper'
         download_blocked_message = 'The download feature of this video has been disabled by'
