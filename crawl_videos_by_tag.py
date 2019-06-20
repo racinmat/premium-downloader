@@ -44,18 +44,22 @@ def videos_by_hashtag_paginated(client, tag_id, count=2000, per_page=100):
 
 
 def porn_star_all_premium_videos(browser: WebDriver, name):
+    # example of type 1, no pagination: https://www.pornhubpremium.com/pornstar/sasha-foxxx/videos/premium
+    # example of type 1, pagination: https://www.pornhubpremium.com/pornstar/asa-akira/videos/premium
+    # example of type 2, no pagination: https://www.pornhubpremium.com/pornstar/madison-scott?premium=1
+    # example of type 2, pagination: https://www.pornhubpremium.com/pornstar/sasha-grey?premium=1&page=2
     # there are 2 types of porn star pages, fuck it
     browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1')
     video_links = []
     if browser.is_element_present_by_id('profileHome'):
         browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}/videos/premium')
-        # todo: dodělat stránky s tímhle
-        # todo: dodělat, otestovat and shit, stránkování
         pages_div = browser.find_by_css('#profileContent > div.profileContentLeft > section > div > div.nf-wrapper > div.pagination3')
-        pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
-        pages_num = 1
+        if len(pages_div) == 0:     # no pagination, so only one page
+            pages_num = 1
+        else:
+            pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
         for page in range(1, pages_num + 1):
-            browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}/videos/premium')
+            browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}/videos/premium?page={page}')
             videos_div = browser.find_by_css('#moreData').first
             videos_list = list(videos_div.find_by_css('li.videoblock'))
             video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
@@ -63,7 +67,11 @@ def porn_star_all_premium_videos(browser: WebDriver, name):
         print(f'loaded {len(video_links)} videos for pornstar {name} in total')
     elif browser.is_element_present_by_id('pornstarVideos'):
         pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
-        pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
+        other_pages = pages_div.first.find_by_css('li.page_number')
+        if len(other_pages) == 0:
+            pages_num = 1
+        else:
+            pages_num = int(other_pages.last.text)
         videos_str = browser.find_by_css(
             'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter').text
         total_videos_num = int(videos_str.split(' ')[-1])
