@@ -67,7 +67,7 @@ def porn_star_all_premium_videos(browser: WebDriver, name):
         print(f'loaded {len(video_links)} videos for pornstar {name} in total')
     elif browser.is_element_present_by_id('pornstarVideos'):
         pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
-        other_pages = pages_div.first.find_by_css('li.page_number')
+        other_pages = [] if len(pages_div) == 0 else pages_div.first.find_by_css('li.page_number')
         if len(other_pages) == 0:
             pages_num = 1
         else:
