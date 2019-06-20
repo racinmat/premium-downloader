@@ -2,16 +2,17 @@ import sqlite3
 from urllib import request
 import requests
 import progressbar
-from crawl_videos_by_tag import get_porn_star_list
 import os.path as osp
+
+from crawl_videos import create_client
 
 
 def main():
-    hashtags_for_download = list(get_porn_star_list().keys())
-    hashtags_list = ', '.join(hashtags_for_download)
-    conn = sqlite3.connect('hashtags.db')
+    browser = create_client()
+
+    conn = sqlite3.connect('links.db')
     conn.row_factory = sqlite3.Row
-    videos_info = conn.execute(f'select * from videos where tag_id in ({hashtags_list}) and downloaded = 0').fetchall()
+    videos_info = conn.execute(f'select * from videos where downloaded = 0').fetchall()
     widgets = [progressbar.Percentage(), ' ', progressbar.Counter(), ' ', progressbar.Bar(), ' ',
                progressbar.FileTransferSpeed()]
     pbar = progressbar.ProgressBar(widgets=widgets, max_value=len(videos_info)).start()
@@ -19,22 +20,34 @@ def main():
     for i, video_info in enumerate(videos_info):
         pbar.update(i)
         video_info = dict(video_info)
-        share_id = video_info['share_id']
-        file_name = f'videos/{share_id}.mp4'
+        video_id = video_info['video_id']
+        browser.visit(video_info['video_url'])
+        video_title = browser.find_by_css('#videoTitle').text
+        file_name = f'videos/{video_id}-{video_title}.mp4'
         if osp.exists(file_name):
             with conn:
-                conn.execute(f'UPDATE videos SET downloaded = 1 where share_id = {share_id}')
+                conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = {video_id}')
             continue
-        download_link = video_info['download_url'].replace('watermark=1', 'watermark=0')
+        sizes = [720, 480]
+        download_link = None
+        for size in sizes:
+            if list(browser.find_link_by_text(f' {size}p')) == 0:
+                # size not existing, trying another
+                continue
+            download_link = browser.find_link_by_text(f' {size}p').first['href']
+            break
+        if download_link is None:
+            raise RuntimeError('link for corresponding size not found')
         # must have here headers, otherwise it behaves as api and does not serve the video
-        response = requests.get(download_link, allow_redirects=True, headers={
-            'User-Agent': 'Mozilla/5.0',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': 'https://permit.pcta.org/application/'
-        })
-        request.urlretrieve(response.url, file_name)
+        request.urlretrieve(download_link, file_name)
+        # response = requests.get(download_link, allow_redirects=True, headers={
+        #     'User-Agent': 'Mozilla/5.0',
+        #     'X-Requested-With': 'XMLHttpRequest',
+        #     'Referer': 'https://permit.pcta.org/application/'
+        # })
+        # request.urlretrieve(response.url, file_name)
         with conn:
-            conn.execute(f'UPDATE videos SET downloaded = 1 where share_id = {share_id}')
+            conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = {video_id}')
 
     pbar.finish()
     print('done')

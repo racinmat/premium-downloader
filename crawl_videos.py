@@ -117,7 +117,8 @@ def get_porn_star_list():
         'chanel-preston', 'vicki-chase', 'casey-calvert', 'jasmine-callipygian', 'athena-rayne',
         'paisley-rae', 'ava-taylor', 'jia-lissa', 'amanda-monroe', 'maria-pie',
         'natalia-starr', 'kendra-james', 'harley-dean', 'jamie-valentine', 'brianna-beach',
-        'penny-flame'
+        'penny-flame', 'charlotte-sartre', 'lena-kelly', 'lucy-heart', 'nesty',
+        'cadence-lux', 'sheena-rose', 'mona-wales', 'aidra-fox', 'natasha-nice',
     ]
 
 
