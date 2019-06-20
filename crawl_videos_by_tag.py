@@ -67,13 +67,17 @@ def porn_star_all_premium_videos(browser: WebDriver, name):
         print(f'loaded {len(video_links)} videos for pornstar {name} in total')
     elif browser.is_element_present_by_id('pornstarVideos'):
         pages_div = browser.find_by_css('body > div.wrapper > div > div.nf-wrapper > div.pagination3 > ul')
-        other_pages = [] if len(pages_div) == 0 else pages_div.first.find_by_css('li.page_number')
+        other_pages = [] if len(pages_div) == 0 else pages_div.first.find_by_css('li.page_number')  # sometimes pagination is missing at all
         if len(other_pages) == 0:
             pages_num = 1
         else:
             pages_num = int(other_pages.last.text)
-        videos_str = browser.find_by_css(
-            'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter').text
+        video_counter_sel = 'body > div.wrapper > div > div:nth-child(13) > div.showingCounter.pornstarVideosCounter'
+        if len(browser.find_by_css(video_counter_sel)) == 0 and len(browser.find_by_css('#pornstarsVideoSection')) == 0:
+            #   no videos
+            print(f'no private videos for pornstar {name}')
+            return video_links
+        videos_str = browser.find_by_css(video_counter_sel).text
         total_videos_num = int(videos_str.split(' ')[-1])
         for page in range(1, pages_num + 1):
             browser.visit(f'https://www.pornhubpremium.com/pornstar/{name}?premium=1&page={page}')
