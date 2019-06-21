@@ -25,6 +25,9 @@ def main():
         browser.visit(video_info['video_url'])
         # if browser.find_by_text('human'):
         video_title = browser.find_by_css('#videoTitle').text
+        browser.find_by_id('player').click()     # pausing video
+        browser.find_by_tag('body')._element.send_keys('M')     # muting video
+
         file_name = f'videos/{video_id}-{video_title}.mp4'
         if osp.exists(file_name):
             with conn:
@@ -33,11 +36,16 @@ def main():
         sizes = [720, 480]
         download_link = None
 
-        download_tab_button = browser.find_by_css('.tab-menu-wrapper-row > .tab-menu-wrapper-cell > .tab-menu-item[data-tab="download-tab"]')
-        download_tab_button.click()
-        sleep(0.1)  # Time in seconds
-        download_tab_button.click()
-        # todo: add mute and pause (m and space) send it to player
+        download_tab_button_sel = '.tab-menu-item[data-tab="download-tab"]'
+        download_tab_button_active_sel = '.tab-menu-item.active[data-tab="download-tab"]'
+        counter = 0
+        while not browser.is_element_present_by_css(download_tab_button_active_sel):
+            if counter > 10:
+                raise RuntimeError('can not click on download tab')
+            sleep(0.1)  # Time in seconds
+            browser.find_by_css(download_tab_button_sel).click()
+            print('clicking on it')
+            counter += 1
 
         download_blocked_div = '.video-actions-tabs > .video-action-tab.download-tab > .verifyEmailWrapper'
         download_blocked_message = 'The download feature of this video has been disabled by'
@@ -46,7 +54,7 @@ def main():
             print('video download is forbidden')
             continue
         for size in sizes:
-            if list(browser.find_link_by_text(f' {size}p')) == 0:
+            if len(browser.find_link_by_text(f' {size}p')) == 0:
                 # size not existing, trying another
                 continue
             download_link = browser.find_link_by_text(f' {size}p').first['href']

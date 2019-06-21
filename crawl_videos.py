@@ -119,6 +119,7 @@ def get_porn_star_list():
         'natalia-starr', 'kendra-james', 'harley-dean', 'jamie-valentine', 'brianna-beach',
         'penny-flame', 'charlotte-sartre', 'lena-kelly', 'lucy-heart', 'nesty',
         'cadence-lux', 'sheena-rose', 'mona-wales', 'aidra-fox', 'natasha-nice',
+        'alaina-dawson', 'rossy-bush',
     ]
 
 
