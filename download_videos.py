@@ -10,7 +10,7 @@ import os.path as osp
 from crawl_videos import create_client
 
 
-def is_download_forbidden(browser, conn):
+def is_download_forbidden(browser, conn, video_id):
     download_blocked_div = '.video-actions-tabs > .video-action-tab.download-tab > .verifyEmailWrapper'
     download_blocked_message = 'The download feature of this video has been disabled by'
     if len(browser.find_by_css(download_blocked_div)) > 0 and download_blocked_message in browser.find_by_css(
@@ -63,7 +63,7 @@ def main():
 
         click_download_tab(browser)
 
-        if is_download_forbidden(browser, conn):
+        if is_download_forbidden(browser, conn, video_id):
             continue
 
         download_link = get_download_link(browser)
