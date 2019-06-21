@@ -13,7 +13,7 @@ def main():
 
     conn = sqlite3.connect('links.db')
     conn.row_factory = sqlite3.Row
-    videos_info = conn.execute(f'select * from videos where downloaded = 0').fetchall()
+    videos_info = conn.execute(f'select * from videos where downloaded = 0 and download_forbidden isnull').fetchall()
     widgets = [progressbar.Percentage(), ' ', progressbar.Counter(), ' ', progressbar.Bar(), ' ',
                progressbar.FileTransferSpeed()]
     pbar = progressbar.ProgressBar(widgets=widgets, max_value=len(videos_info)).start()
@@ -31,7 +31,7 @@ def main():
         file_name = f'videos/{video_id}-{video_title}.mp4'
         if osp.exists(file_name):
             with conn:
-                conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
+                conn.execute(f'UPDATE videos SET downloaded = 1, download_forbidden = 0 where video_id = "{video_id}"')
             continue
         sizes = [720, 480]
         download_link = None
@@ -52,6 +52,8 @@ def main():
         if len(browser.find_by_css(download_blocked_div)) > 0 and download_blocked_message in browser.find_by_css(
                 download_blocked_div).text:
             print('video download is forbidden')
+            with conn:
+                conn.execute(f'UPDATE videos SET downloaded = 0, download_forbidden = 1 where video_id = "{video_id}"')
             continue
         for size in sizes:
             if len(browser.find_link_by_text(f' {size}p')) == 0:

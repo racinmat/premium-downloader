@@ -130,7 +130,7 @@ def main():
     conn = sqlite3.connect('links.db')
     conn.execute(
         "CREATE TABLE IF NOT EXISTS videos (video_id varchar NOT NULL, star_name varchar NOT NULL, "
-        "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0);")
+        "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0, download_forbidden int default NULL);")
 
     for star_name in porn_stars:
         videos_list = porn_star_all_premium_videos(browser, star_name)
