@@ -57,6 +57,7 @@ def main():
 
         if browser.is_element_present_by_css('.removed'):
             # video has been removed
+            print('video has been removed\n')
             with conn:
                 conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
@@ -68,7 +69,14 @@ def main():
         file_name = f'videos/{video_id}-{video_title}.mp4'
         if osp.exists(file_name):
             with conn:
-                conn.execute(f'UPDATE videos SET downloaded = 1, download_forbidden = 0 where video_id = "{video_id}"')
+                conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
+            continue
+
+        if browser.is_element_present_by_css('.tab-menu-item.js-paidDownload[data-tab="download-tab"]'):
+            # video has been removed
+            print('video download is paid\n')
+            with conn:
+                conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
 
         click_download_tab(browser)
