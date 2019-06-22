@@ -50,7 +50,11 @@ def main():
         video_info = dict(video_info)
         video_id = video_info['video_id']
         browser.visit(video_info['video_url'])
-        # if browser.find_by_text('human'):
+
+        while browser.is_element_present_by_css('.recaptchaContent'):  # sometimes wild captcha appears
+            print("CAPTCHA NEEDED")
+            sleep(60)
+
         video_title = browser.find_by_css('#videoTitle').text
         browser.find_by_id('player').click()  # pausing video
         browser.find_by_tag('body')._element.send_keys('M')  # muting video
