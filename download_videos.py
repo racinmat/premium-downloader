@@ -64,7 +64,8 @@ def main():
 
         video_title = browser.find_by_css('#videoTitle').text  # type: str
         # because of fucking windows
-        video_title = video_title.replace(':', '').replace('?', '').replace('*', '').replace('"', '')
+        video_title = video_title.replace(':', '').replace('?', '').replace('*', '').replace('"', '').replace('/', '')\
+            .replace('\\', '')
         browser.find_by_id('player').click()  # pausing video
         browser.find_by_tag('body')._element.send_keys('M')  # muting video
 
