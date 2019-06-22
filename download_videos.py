@@ -62,7 +62,9 @@ def main():
                 conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
 
-        video_title = browser.find_by_css('#videoTitle').text
+        video_title = browser.find_by_css('#videoTitle').text  # type: str
+        # because of fucking windows
+        video_title = video_title.replace(':', '').replace('?', '').replace('*', '').replace('"', '')
         browser.find_by_id('player').click()  # pausing video
         browser.find_by_tag('body')._element.send_keys('M')  # muting video
 
