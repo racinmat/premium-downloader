@@ -1,4 +1,5 @@
 import json
+import yaml
 import sqlite3
 from io import StringIO
 from splinter.driver.webdriver.chrome import WebDriver
@@ -8,7 +9,7 @@ import re
 
 def create_client():
     with open('credentials.json', mode='r', encoding='utf-8') as fp:
-        credentials = json.load(fp)
+        credentials = yaml.safe_load(fp)
     username = credentials['username']
     password = credentials['password']
     client = Client(username, password)
@@ -97,30 +98,17 @@ def channel_all_premium_videos(browser: WebDriver, name):
 
 
 def get_porn_star_list():
-    return [
-        'sasha-grey', 'sasha-foxxx', 'asa-akira', 'madison-scott', 'riley-reid',
-        'skin-diamond', 'maitresse-madeline', 'ashley-jane', 'lorelei-lee', 'amber-rayne',
-        'gia-dimarco', 'dani-daniels', 'krissy-lynn', 'madison-young', 'nora-skyy',
-        'dillion-harper', 'kathia-nobili', 'charli-piper', 'piper-perri', 'melody-marks',
-        'ella-nova', 'lola-fae', 'jenna-presley', 'jasmine-jae', 'pussykat', 'jayden-lee',
-        'ashley-fires', 'kate-truu', 'rae-lil-black', 'ashlynn-taylor', 'kristina-rose',
-        'felony', 'anabelle-pync', 'ariana-marie', 'abella-danger', 'kimmy-granger',
-        'julianna-vega', 'veronica-avluv', 'aiden-starr', 'kasey-warner', 'christie-stevens',
-        'katie-kox', 'sabrina-banks', 'lexi-lore', 'alli-rae', 'janice-griffith',
-        'sophie-dee', 'linet-a-lynette', 'lexi-belle', 'francesca-le', 'kelly-divine',
-        'chanel-preston', 'vicki-chase', 'casey-calvert', 'jasmine-callipygian', 'athena-rayne',
-        'paisley-rae', 'ava-taylor', 'jia-lissa', 'amanda-monroe', 'maria-pie',
-        'natalia-starr', 'kendra-james', 'harley-dean', 'jamie-valentine', 'brianna-beach',
-        'penny-flame', 'charlotte-sartre', 'lena-kelly', 'lucy-heart', 'nesty',
-        'cadence-lux', 'sheena-rose', 'mona-wales', 'aidra-fox', 'natasha-nice',
-        'alaina-dawson', 'rossy-bush',
-    ]
+    with open('do_download.yml', 'r') as fp:
+        try:
+            return yaml.safe_load(fp)
+        except yaml.YAMLError as exc:
+            print(exc)
 
 
 def get_channel_list():
     return [
         'mofos', 'harmonyvision', 'helpless-teens', 'theupperfloor', 'sexandsubmission',
-        'divinebitches', 'kink-university', 'thetrainingofo',
+        'divinebitches', 'kink-university', 'thetrainingofo', 'punish-teens', 'exxxtrasmall'
     ]
 
 

@@ -22,8 +22,7 @@ def is_download_forbidden(browser, conn, video_id):
     return False
 
 
-def click_download_tab(browser):
-    download_tab_button_sel = '.tab-menu-item[data-tab="download-tab"]'
+def click_download_tab(browser, download_tab_button_sel):
     download_tab_button_active_sel = '.tab-menu-item.active[data-tab="download-tab"]'
     counter = 0
     while not browser.is_element_present_by_css(download_tab_button_active_sel):
@@ -82,7 +81,17 @@ def main():
                 conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
 
-        click_download_tab(browser)
+        download_tab_button_sel = '.tab-menu-item[data-tab="download-tab"]'
+        vr_tab_button_sel = '.tab-menu-item[data-tab="vr-tab"]'
+        if not browser.is_element_present_by_css(download_tab_button_sel) \
+                and browser.is_element_present_by_css(vr_tab_button_sel):
+            # video has been removed
+            print('video is vr, no download\n')
+            with conn:
+                conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
+            continue
+
+        click_download_tab(browser, download_tab_button_sel)
 
         if is_download_forbidden(browser, conn, video_id):
             continue
