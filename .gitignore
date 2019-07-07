@@ -108,3 +108,4 @@ venv.bak/
 /credentials.json
 /videos/
 /credentials.yml
+/to_download.yml
