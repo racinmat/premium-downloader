@@ -8,7 +8,7 @@ import re
 
 
 def create_client():
-    with open('credentials.json', mode='r', encoding='utf-8') as fp:
+    with open('credentials.yml', mode='r', encoding='utf-8') as fp:
         credentials = yaml.safe_load(fp)
     username = credentials['username']
     password = credentials['password']
