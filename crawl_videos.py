@@ -98,9 +98,9 @@ def channel_all_premium_videos(browser: WebDriver, name):
 
 
 def get_porn_star_list():
-    with open('do_download.yml', 'r') as fp:
+    with open('to_download.yml', 'r') as fp:
         try:
-            return yaml.safe_load(fp)
+            return yaml.safe_load(fp)['stars']
         except yaml.YAMLError as exc:
             print(exc)
 
