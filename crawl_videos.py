@@ -80,16 +80,16 @@ def porn_star_all_premium_videos(browser: WebDriver, name):
 
 def channel_all_premium_videos(browser: WebDriver, name):
     browser.visit(f'https://www.pornhubpremium.com/channels/{name}/videos?premium=1')
-    pages_div = browser.find_by_css('#channelsProfile > div.pagination3')
-    if len(pages_div) == 0:  # no pagination, so only one page
+    pages_list = browser.find_by_css('#channelsProfile > div.pagination3 > ul > li')
+    if len(pages_list) == 1:  # no pagination, so only one page
         pages_num = 1
     else:
-        pages_num = int(pages_div.first.find_by_css('li.page_number').last.text)
+        pages_num = int(browser.find_by_css('#channelsProfile > div.pagination3 > ul > li.page_number').last.text)
 
     video_links = []
     for page in range(1, pages_num + 1):
         browser.visit(f'https://www.pornhubpremium.com/channels/{name}/videos?premium=1&page={page}')
-        videos_div = browser.find_by_css('#moreData').first
+        videos_div = browser.find_by_css('ul#showAllChanelVideos').first
         videos_list = list(videos_div.find_by_css('li.videoblock'))
         video_links += [i.find_by_css('div > div.thumbnail-info-wrapper.clearfix > span > a').first['href'] for i in
                         videos_list]
@@ -106,10 +106,11 @@ def get_porn_star_list():
 
 
 def get_channel_list():
-    return [
-        'mofos', 'harmonyvision', 'helpless-teens', 'theupperfloor', 'sexandsubmission',
-        'divinebitches', 'kink-university', 'thetrainingofo', 'punish-teens', 'exxxtrasmall'
-    ]
+    with open('to_download.yml', 'r') as fp:
+        try:
+            return yaml.safe_load(fp)['channels']
+        except yaml.YAMLError as exc:
+            print(exc)
 
 
 def main():
@@ -122,19 +123,19 @@ def main():
         "CREATE TABLE IF NOT EXISTS videos (video_id varchar NOT NULL, star_name varchar NOT NULL, "
         "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0, download_forbidden int default NULL);")
 
-    for star_name in porn_stars:
-        videos_list = porn_star_all_premium_videos(browser, star_name)
-        for video in videos_list:
-            video_id = re.search('viewkey=([\d\w]+)', video).group(1)
-            if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
-                continue
-            with conn:
-                conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
-                             (video_id, video, star_name))
+    # for star_name in porn_stars:
+    #     videos_list = porn_star_all_premium_videos(browser, star_name)
+    #     for video in videos_list:
+    #         video_id = re.search('viewkey=([\d\w]+)', video).group(1)
+    #         if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
+    #             continue
+    #         with conn:
+    #             conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
+    #                          (video_id, video, star_name))
     print('done stars\n')
 
     for channel in channels:
-        videos_list = porn_star_all_premium_videos(browser, channel)
+        videos_list = channel_all_premium_videos(browser, channel)
         for video in videos_list:
             video_id = re.search('viewkey=([\d\w]+)', video).group(1)
             if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
