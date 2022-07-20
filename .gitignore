@@ -109,3 +109,5 @@ venv.bak/
 /videos/
 /credentials.yml
 /to_download.yml
+/to_download_fapello.yml
+/fapello/

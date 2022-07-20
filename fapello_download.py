@@ -2,6 +2,7 @@ import os
 from urllib.error import URLError
 import os.path as osp
 import requests
+import yaml
 from lxml import html
 import progressbar
 
@@ -13,6 +14,7 @@ hs = {
 
 
 def download_creator(creator_name):
+    print(f'downloading {creator_name=}')
     s = requests.Session()
     s.headers.update(hs)
 
@@ -25,7 +27,7 @@ def download_creator(creator_name):
     tree = html.fromstring(response.content)
     max_val = int(tree.xpath('//*[@id="content"]/div[1]/a')[0].attrib['href'].split('/')[-2])
     pbar = progressbar.ProgressBar(widgets=widgets, max_value=max_val).start()
-    for i in range(1, max_val+1):
+    for i in range(1, max_val + 1):
         pbar.update(i)
         i_url = base_url.format(creator_name, i)
         response = s.get(i_url)
@@ -47,8 +49,16 @@ def download_creator(creator_name):
     pbar.finish()
 
 
+def get_creator_list():
+    with open('to_download_fapello.yml', 'r') as fp:
+        try:
+            return yaml.safe_load(fp)['stars']
+        except yaml.YAMLError as exc:
+            print(exc)
+
+
 def main():
-    creator_names = ['hemulka', 'bonbibonkers']
+    creator_names = get_creator_list()
     for creator_name in creator_names:
         download_creator(creator_name)
 
