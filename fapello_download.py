@@ -13,7 +13,7 @@ hs = {
 }
 
 
-def download_creator(creator_name):
+def download_creator(creator_name, assume_naming=True):
     print(f'downloading {creator_name=}')
     s = requests.Session()
     s.headers.update(hs)
@@ -22,14 +22,26 @@ def download_creator(creator_name):
     base_url = 'https://fapello.com/{}/{}'
     widgets = [progressbar.Percentage(), ' ', progressbar.Counter(), ' ', progressbar.Bar(), ' ',
                progressbar.FileTransferSpeed()]
-    main_url = base_url[:-3].format(creator_name)
+    main_url = base_url[:-2].format(creator_name)
     response = s.get(main_url)
+    if response.status_code == 302:
+        print(f'creator page {main_url=} does not exist')
+        return
     tree = html.fromstring(response.content)
-    max_val = int(tree.xpath('//*[@id="content"]/div[1]/a')[0].attrib['href'].split('/')[-2])
+    links = tree.xpath('//*[@id="content"]/div[1]/a')
+    if len(links) == 0:
+        print(f'creator page {main_url=} probably does not exist')
+        return
+    max_val = int(links[0].attrib['href'].split('/')[-2])
     pbar = progressbar.ProgressBar(widgets=widgets, max_value=max_val).start()
     for i in range(1, max_val + 1):
         pbar.update(i)
         i_url = base_url.format(creator_name, i)
+
+        if assume_naming:
+            save_path = osp.join(save_dir, creator_name, f'{creator_name}_{i:04}.jpg')
+            if osp.exists(save_path):
+                continue
         response = s.get(i_url)
         tree = html.fromstring(response.content)
         img_path = tree.xpath('//*[@id="wrapper"]/div[2]/div/div/div/div[2]/a/img')
