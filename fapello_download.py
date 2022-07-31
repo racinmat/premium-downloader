@@ -1,17 +1,37 @@
 import os
-from urllib.error import URLError
 import os.path as osp
 import requests
 import yaml
 from lxml import html
 import progressbar
-import urllib.request
+
+from requests import Session
 
 hs = {
     'User-Agent': 'Mozilla/5.0',
     'X-Requested-With': 'XMLHttpRequest',
     'Referer': 'https://permit.pcta.org/application/'
 }
+
+
+# from https://stackoverflow.com/a/58656261/5224881
+def download_file(s: Session, url, filename):
+    # create response object
+    r = s.get(url, stream=True)
+    headers = r.headers
+    size = int(headers["Content-Length"])
+    # download started
+    read = 0
+    with open(filename, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024 * 1024):
+            read += len(chunk)
+            if chunk:
+                f.write(chunk)
+
+    if size >= 0 and read < size:
+        raise Exception(
+            "retrieval incomplete: got only %i out of %i bytes"
+            % (read, size))
 
 
 def download_creator(creator_name, assume_naming=True, skip_failed=True):
@@ -62,9 +82,10 @@ def download_creator(creator_name, assume_naming=True, skip_failed=True):
         tree = html.fromstring(response.content)
         img_path = tree.xpath('//*[@id="wrapper"]/div[2]/div/div/div/div[2]/a/img')
         if len(img_path) == 0:
-            # maybe video
+            # not an image, try video
             vid_path = tree.xpath('//*[@id="wrapper"]/div[2]/div/div/div/div[2]/video/source')
             if len(vid_path) == 0:
+                # not even video
                 print(f'skipping page {i_url=}, probably invalid')
                 continue
             else:
@@ -76,7 +97,7 @@ def download_creator(creator_name, assume_naming=True, skip_failed=True):
         os.makedirs(osp.dirname(save_path), exist_ok=True)
         if osp.exists(save_path):
             continue
-        urllib.request.urlretrieve(target_url, save_path)
+        download_file(s, target_url, save_path)
     pbar.finish()
 
 
