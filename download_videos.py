@@ -7,7 +7,11 @@ import requests
 import progressbar
 import os.path as osp
 
-from crawl_videos import create_client
+import youtube_dl
+from splinter.driver.webdriver.chrome import WebDriver
+
+from a_downloader.functions import custom_dl_download, ph_url_check, ph_alive_check, get_dl_location
+from crawl_videos import create_client, create_ydl_client
 
 
 def is_download_forbidden(browser, conn, video_id):
@@ -27,28 +31,42 @@ def click_download_tab(browser, download_tab_button_sel):
     counter = 0
     while not browser.is_element_present_by_css(download_tab_button_active_sel):
         if counter > 10:
-            raise RuntimeError('can not click on download tab')
+            print('can not click on download tab')
+            return False
         sleep(0.1)  # Time in seconds
-        browser.find_by_css(download_tab_button_sel).click()
+        button = browser.find_by_css(download_tab_button_sel)
+        browser.find_by_text('The download feature of this video has been disabled ')
+        if len(button) == 0:
+            print('disabled video download, trying alternative')
+            return False
+        button.click()
         print('clicking on it\n')
         counter += 1
+    return True
 
 
-def main():
-    browser = create_client()
+def download_using_youtube_dl(ydl, url):
+    ph_url_check(url)
+    ph_alive_check(url)
+    ydl.download([url])
 
-    conn = sqlite3.connect('links.db')
-    conn.row_factory = sqlite3.Row
-    videos_info = conn.execute(f'select * from videos where downloaded = 0 and download_forbidden isnull').fetchall()
-    widgets = [progressbar.Percentage(), ' ', progressbar.Counter(), ' ', progressbar.Bar(), ' ',
-               progressbar.FileTransferSpeed()]
-    pbar = progressbar.ProgressBar(widgets=widgets, max_value=len(videos_info)).start()
 
+def set_downloaded(conn, file_name, video_id):
+    print(file_name, 'downloaded\n')
+    with conn:
+        conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
+
+
+def download_official():
+    browser: WebDriver = create_client()
+    conn, videos_info = list_videos()
+    pbar = prepare_pbar(videos_info)
     for i, video_info in enumerate(videos_info):
         pbar.update(i)
         video_info = dict(video_info)
         video_id = video_info['video_id']
-        browser.visit(video_info['video_url'])
+        video_url = video_info['video_url']
+        browser.visit(video_url)
 
         while browser.is_element_present_by_css('.recaptchaContent'):  # sometimes wild captcha appears
             print("CAPTCHA NEEDED")
@@ -60,9 +78,8 @@ def main():
             with conn:
                 conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
-
-        if not browser.is_element_present_by_css(
-                '.premiumIconTitleOnVideo:visible') and not browser.is_element_present_by_css('#videoTitle'):
+        if not browser.is_element_visible_by_css(
+                '.premiumIconTitleOnVideo') and not browser.is_element_present_by_css('#videoTitle'):
             # video has been removed
             print('video is somehow broken and not premiuzm\n')
             with conn:
@@ -100,7 +117,6 @@ def main():
             continue
 
         click_download_tab(browser, download_tab_button_sel)
-
         if is_download_forbidden(browser, conn, video_id):
             continue
 
@@ -113,9 +129,44 @@ def main():
             except URLError:
                 print('connection failed, trying again\n')
 
-        print(file_name, 'downloaded\n')
-        with conn:
-            conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
+        set_downloaded(conn, file_name, video_id)
+    return pbar
+
+
+def download_ydl():
+    ydl = create_ydl_client()
+    conn, videos_info = list_videos()
+    pbar = prepare_pbar(videos_info)
+    for i, video_info in enumerate(videos_info):
+        pbar.update(i)
+        video_info = dict(video_info)
+        video_id = video_info['video_id']
+        video_url = video_info['video_url']
+        download_using_youtube_dl(ydl, video_url)
+        set_downloaded(conn, video_url, video_id)
+    return pbar
+
+
+def prepare_pbar(videos_info):
+    widgets = [progressbar.Percentage(), ' ', progressbar.Counter(), ' ', progressbar.Bar(), ' ',
+               progressbar.FileTransferSpeed()]
+    pbar = progressbar.ProgressBar(widgets=widgets, max_value=len(videos_info)).start()
+    return pbar
+
+
+def list_videos():
+    conn = sqlite3.connect('links.db')
+    conn.row_factory = sqlite3.Row
+    videos_info = conn.execute(f'select * from videos where downloaded = 0 and download_forbidden isnull').fetchall()
+    return conn, videos_info
+
+
+def main():
+    use_ydl = True
+    if use_ydl:
+        pbar = download_ydl()
+    else:
+        pbar = download_official()
 
     pbar.finish()
     print('done')
