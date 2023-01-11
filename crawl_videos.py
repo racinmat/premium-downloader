@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+
 import yaml
 import sqlite3
 from io import StringIO
@@ -178,6 +180,14 @@ def get_model_list():
             print(exc)
 
 
+def add_video_if_not_exists(conn, video_id, video, source_name):
+    if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
+        return
+    with conn:
+        conn.execute('INSERT INTO videos (video_id, video_url, star_name, downloaded_timestamp) VALUES (?, ?, ?, ?)',
+                     (video_id, video, source_name, datetime.now().isoformat()))
+
+
 def main():
     browser = create_client()
     porn_stars = get_porn_star_list()
@@ -187,39 +197,28 @@ def main():
     conn = sqlite3.connect('links.db')
     conn.execute(
         "CREATE TABLE IF NOT EXISTS videos (video_id varchar NOT NULL, star_name varchar NOT NULL, "
-        "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0, download_forbidden int default NULL);")
+        "video_url varchar NOT NULL, downloaded integer NOT NULL DEFAULT 0, download_forbidden int default NULL, "
+        "added_timestamp varchar default null, downloaded_timestamp varchar default null);")
 
-    # for star_name in porn_stars:
-    #     videos_list = porn_star_all_premium_videos(browser, star_name)
-    #     for video in videos_list:
-    #         video_id = re.search('viewkey=([\d\w]+)', video).group(1)
-    #         if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
-    #             continue
-    #         with conn:
-    #             conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
-    #                          (video_id, video, star_name))
-    # print('done stars\n')
-    #
-    # for channel in channels:
-    #     videos_list = channel_all_premium_videos(browser, channel)
-    #     for video in videos_list:
-    #         video_id = re.search('viewkey=([\d\w]+)', video).group(1)
-    #         if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
-    #             continue
-    #         with conn:
-    #             conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
-    #                          (video_id, video, channel))
-    # print('done channels\n')
+    for star_name in porn_stars:
+        videos_list = porn_star_all_premium_videos(browser, star_name)
+        for video in videos_list:
+            video_id = re.search('viewkey=([\d\w]+)', video).group(1)
+            add_video_if_not_exists(conn, video_id, video, star_name)
+    print('done stars\n')
+
+    for channel in channels:
+        videos_list = channel_all_premium_videos(browser, channel)
+        for video in videos_list:
+            video_id = re.search('viewkey=([\d\w]+)', video).group(1)
+            add_video_if_not_exists(conn, video_id, video, channel)
+    print('done channels\n')
 
     for model in models:
         videos_list = models_all_public_videos(browser, model)
         for video in videos_list:
             video_id = re.search('viewkey=([\d\w]+)', video).group(1)
-            if conn.execute(f'select exists(select 1 from videos where video_id = \'{video_id}\')').fetchone()[0]:
-                continue
-            with conn:
-                conn.execute('INSERT INTO videos (video_id, video_url, star_name) VALUES (?, ?, ?)',
-                             (video_id, video, model))
+            add_video_if_not_exists(conn, video_id, video, model)
     print('done models\n')
     print('done everything\n')
 

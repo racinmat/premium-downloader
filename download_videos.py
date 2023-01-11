@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 from time import sleep
 from urllib import request
 from urllib.error import URLError
@@ -45,16 +46,19 @@ def click_download_tab(browser, download_tab_button_sel):
     return True
 
 
-def download_using_youtube_dl(ydl, url):
+def download_using_youtube_dl(ydl, url) -> bool:
     ph_url_check(url)
     ph_alive_check(url)
-    ydl.download([url])
+    download_ret_code = ydl.download([url])
+    return download_ret_code == 0
 
 
 def set_downloaded(conn, file_name, video_id):
     print(file_name, 'downloaded\n')
     with conn:
-        conn.execute(f'UPDATE videos SET downloaded = 1 where video_id = "{video_id}"')
+        conn.execute(
+            f'UPDATE videos SET downloaded = 1, downloaded_timestamp = {datetime.now().isoformat()} '
+            f'where video_id = "{video_id}"')
 
 
 def download_official():
@@ -142,8 +146,11 @@ def download_ydl():
         video_info = dict(video_info)
         video_id = video_info['video_id']
         video_url = video_info['video_url']
-        download_using_youtube_dl(ydl, video_url)
-        set_downloaded(conn, video_url, video_id)
+        download_success = download_using_youtube_dl(ydl, video_url)
+        if download_success:
+            set_downloaded(conn, video_url, video_id)
+        else:
+            print(f'failed to download the video {video_id}, {video_url}')
     return pbar
 
 
@@ -161,17 +168,6 @@ def list_videos():
     return conn, videos_info
 
 
-def main():
-    use_ydl = True
-    if use_ydl:
-        pbar = download_ydl()
-    else:
-        pbar = download_official()
-
-    pbar.finish()
-    print('done')
-
-
 def get_download_link(browser):
     sizes = [720, 480]
     download_link = None
@@ -184,6 +180,17 @@ def get_download_link(browser):
     if download_link is None:
         raise RuntimeError('link for corresponding size not found')
     return download_link
+
+
+def main():
+    use_ydl = True
+    if use_ydl:
+        pbar = download_ydl()
+    else:
+        pbar = download_official()
+
+    pbar.finish()
+    print('done')
 
 
 if __name__ == '__main__':
