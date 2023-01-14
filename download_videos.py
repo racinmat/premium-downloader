@@ -49,6 +49,8 @@ def click_download_tab(browser, download_tab_button_sel):
 def download_using_youtube_dl(ydl, url) -> bool:
     ph_url_check(url)
     ph_alive_check(url)
+    ydl._download_retcode = 0   # because this is not set to 0 before each download, it is turned just from 0 to 1
+    # so the line above resets it to default state
     download_ret_code = ydl.download([url])
     return download_ret_code == 0
 
@@ -57,7 +59,7 @@ def set_downloaded(conn, file_name, video_id):
     print(file_name, 'downloaded\n')
     with conn:
         conn.execute(
-            f'UPDATE videos SET downloaded = 1, downloaded_timestamp = {datetime.now().isoformat()} '
+            f'UPDATE videos SET downloaded = 1, downloaded_timestamp = "{datetime.now().isoformat()}" '
             f'where video_id = "{video_id}"')
 
 
