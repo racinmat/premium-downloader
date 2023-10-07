@@ -57,7 +57,7 @@ def main():
     # os.system(f'mega-login {main_dir}')
     print_files = False
     show_errors = False
-    max_depth = 6
+    max_depth = 4
     examine_dir('', print_files, show_errors, max_depth)
 
 
@@ -70,3 +70,5 @@ if __name__ == '__main__':
 # python mega_list_sizes.py > /volume1/shared_data/video/other/of_leaks/total_output.txt 2>&1
 # python mega_list_sizes.py > /volume1/shared_data/video/other/of_leaks/total_output_dirs_only.txt 2>&1
 # python mega_list_sizes.py > /volume1/shared_data/video/other/of_leaks/total_output_small.txt 2>&1
+# python mega_list_sizes.py > /volume1/shared_data/video/other/of_leaks/total_output_small_5.txt 2>&1
+# python mega_list_sizes.py > /volume1/shared_data/video/other/of_leaks/total_output_small_4.txt 2>&1

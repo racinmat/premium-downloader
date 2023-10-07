@@ -11,7 +11,7 @@ import os.path as osp
 import youtube_dl
 from splinter.driver.webdriver.chrome import WebDriver
 
-from a_downloader.functions import custom_dl_download, ph_url_check, ph_alive_check, get_dl_location
+from a_downloader.functions import custom_dl_download, ph_url_check, alive_check, get_dl_location
 from crawl_videos import create_client, create_ydl_client
 
 
@@ -19,7 +19,7 @@ def is_download_forbidden(browser, conn, video_id):
     download_blocked_div = '.video-actions-tabs > .video-action-tab.download-tab > .verifyEmailWrapper'
     download_blocked_message = 'The download feature of this video has been disabled by'
     if len(browser.find_by_css(download_blocked_div)) > 0 and download_blocked_message in browser.find_by_css(
-            download_blocked_div).text:
+        download_blocked_div).text:
         print('video download is forbidden\n')
         with conn:
             conn.execute(f'UPDATE videos SET downloaded = 0, download_forbidden = 1 where video_id = "{video_id}"')
@@ -46,10 +46,9 @@ def click_download_tab(browser, download_tab_button_sel):
     return True
 
 
-def download_using_youtube_dl(ydl, url) -> bool:
-    ph_url_check(url)
-    ph_alive_check(url)
-    ydl._download_retcode = 0   # because this is not set to 0 before each download, it is turned just from 0 to 1
+def download_using_youtube_dl(ydl, url, pre_callback) -> bool:
+    pre_callback(url)
+    ydl._download_retcode = 0  # because this is not set to 0 before each download, it is turned just from 0 to 1
     # so the line above resets it to default state
     download_ret_code = ydl.download([url])
     return download_ret_code == 0
@@ -63,9 +62,9 @@ def set_downloaded(conn, file_name, video_id):
             f'where video_id = "{video_id}"')
 
 
-def download_official():
+def download_official(query):
     browser: WebDriver = create_client()
-    conn, videos_info = list_videos()
+    conn, videos_info = list_videos(query)
     pbar = prepare_pbar(videos_info)
     for i, video_info in enumerate(videos_info):
         pbar.update(i)
@@ -85,7 +84,7 @@ def download_official():
                 conn.execute(f'UPDATE videos SET download_forbidden = 1 where video_id = "{video_id}"')
             continue
         if not browser.is_element_visible_by_css(
-                '.premiumIconTitleOnVideo') and not browser.is_element_present_by_css('#videoTitle'):
+            '.premiumIconTitleOnVideo') and not browser.is_element_present_by_css('#videoTitle'):
             # video has been removed
             print('video is somehow broken and not premiuzm\n')
             with conn:
@@ -115,7 +114,7 @@ def download_official():
         download_tab_button_sel = '.tab-menu-item[data-tab="download-tab"]'
         vr_tab_button_sel = '.tab-menu-item[data-tab="vr-tab"]'
         if not browser.is_element_present_by_css(download_tab_button_sel) \
-                and browser.is_element_present_by_css(vr_tab_button_sel):
+            and browser.is_element_present_by_css(vr_tab_button_sel):
             # video has been removed
             print('video is vr, no download\n')
             with conn:
@@ -139,18 +138,17 @@ def download_official():
     return pbar
 
 
-def download_ydl():
-    ydl = create_ydl_client()
-    conn, videos_info = list_videos()
+def download_ydl(ydl, query, downloaded_callback, pre_callback):
+    conn, videos_info = list_videos(query)
     pbar = prepare_pbar(videos_info)
     for i, video_info in enumerate(videos_info):
         pbar.update(i)
         video_info = dict(video_info)
         video_id = video_info['video_id']
         video_url = video_info['video_url']
-        download_success = download_using_youtube_dl(ydl, video_url)
+        download_success = download_using_youtube_dl(ydl, video_url, pre_callback)
         if download_success:
-            set_downloaded(conn, video_url, video_id)
+            downloaded_callback(conn, video_url, video_id)
         else:
             print(f'failed to download the video {video_id}, {video_url}')
     return pbar
@@ -163,10 +161,10 @@ def prepare_pbar(videos_info):
     return pbar
 
 
-def list_videos():
+def list_videos(query):
     conn = sqlite3.connect('links.db')
     conn.row_factory = sqlite3.Row
-    videos_info = conn.execute(f'select * from videos where downloaded = 0 and download_forbidden isnull').fetchall()
+    videos_info = conn.execute(query).fetchall()
     return conn, videos_info
 
 
@@ -184,12 +182,18 @@ def get_download_link(browser):
     return download_link
 
 
+def check_url(url):
+    ph_url_check(url)
+    alive_check(url)
+
 def main():
     use_ydl = True
     if use_ydl:
-        pbar = download_ydl()
+        ydl = create_ydl_client()
+        pbar = download_ydl(ydl, 'select * from videos where downloaded = 0 and download_forbidden isnull', set_downloaded,
+                            check_url)
     else:
-        pbar = download_official()
+        pbar = download_official('select * from videos where downloaded = 0 and download_forbidden isnull')
 
     pbar.finish()
     print('done')
